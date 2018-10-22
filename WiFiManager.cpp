@@ -279,7 +279,7 @@ int WiFiManager::connectWifi(String ssid, String pass) {
   // check if we've got static_ip settings, if we do, use those.
   if (_sta_static_ip) {
     DEBUG_WM(F("Custom STA IP/GW/Subnet"));
-    WiFi.config(_sta_static_ip, _sta_static_gw, _sta_static_sn);
+    WiFi.config(_sta_static_ip, _sta_static_gw, _sta_static_sn, _sta_static_gw, IPAddress(8,8,8,8));
     DEBUG_WM(WiFi.localIP());
   }
   //fix for auto connect racing issue
