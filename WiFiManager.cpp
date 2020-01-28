@@ -173,8 +173,12 @@ boolean WiFiManager::autoConnect(char const *apName, char const *apPassword) {
   WiFi.mode(WIFI_STA);
 
   if (connectWifi("", "") == WL_CONNECTED)   {
-    DEBUG_WM(F("IP Address:"));
-    DEBUG_WM(WiFi.localIP());
+	    DEBUG_WM(F("IP Address:"));
+	    DEBUG_WM(WiFi.localIP());
+	    DEBUG_WM(F("DNS 1:"));
+		DEBUG_WM(WiFi.dnsIP(0));
+		DEBUG_WM(F("DNS 2:"));
+		DEBUG_WM(WiFi.dnsIP(1));
     //connected
     return true;
   }
@@ -278,7 +282,12 @@ int WiFiManager::connectWifi(String ssid, String pass) {
   // check if we've got static_ip settings, if we do, use those.
   if (_sta_static_ip) {
     DEBUG_WM(F("Custom STA IP/GW/Subnet"));
-    WiFi.config(_sta_static_ip, _sta_static_gw, _sta_static_sn, _sta_static_gw, IPAddress(8,8,8,8));
+//
+    if (_sta_static_dns1) {
+        WiFi.config(_sta_static_ip, _sta_static_gw, _sta_static_sn, _sta_static_dns1, _sta_static_dns2);
+    }else{
+    	WiFi.config(_sta_static_ip, _sta_static_gw, _sta_static_sn, _sta_static_gw, IPAddress(8,8,8,8));
+    }
     DEBUG_WM(WiFi.localIP());
   }
   //fix for auto connect racing issue
@@ -402,6 +411,14 @@ void WiFiManager::setSTAStaticIPConfig(IPAddress ip, IPAddress gw, IPAddress sn)
   _sta_static_ip = ip;
   _sta_static_gw = gw;
   _sta_static_sn = sn;
+}
+void WiFiManager::setSTAStaticIPConfig(IPAddress ip, IPAddress gw, IPAddress sn, IPAddress dns1, IPAddress dns2) {
+  _sta_static_ip = ip;
+  _sta_static_gw = gw;
+  _sta_static_sn = sn;
+
+  _sta_static_dns1 = dns1;
+  _sta_static_dns2 = dns2;
 }
 
 void WiFiManager::setMinimumSignalQuality(int quality) {
@@ -578,6 +595,27 @@ void WiFiManager::handleWifi(boolean scan) {
 
     page += item;
 
+    if (_sta_static_dns1) {
+
+      String item = FPSTR(HTTP_FORM_PARAM);
+      item.replace("{i}", "dns1");
+      item.replace("{n}", "dns1");
+      item.replace("{p}", "Static dns 1");
+      item.replace("{l}", "15");
+      item.replace("{v}", _sta_static_dns1.toString());
+
+      page += item;
+
+      item = FPSTR(HTTP_FORM_PARAM);
+      item.replace("{i}", "dns2");
+      item.replace("{n}", "dns2");
+      item.replace("{p}", "Static dns 2");
+      item.replace("{l}", "15");
+      item.replace("{v}", _sta_static_dns2.toString());
+
+      page += item;
+    }
+
     page += "<br/>";
   }
 
@@ -634,6 +672,20 @@ void WiFiManager::handleWifiSave() {
     String sn = server->arg("sn");
     optionalIPFromString(&_sta_static_sn, sn.c_str());
   }
+
+  if (server->arg("dns1") != "") {
+    DEBUG_WM(F("DNS 1"));
+    DEBUG_WM(server->arg("dns1"));
+    String dns1 = server->arg("dns1");
+    optionalIPFromString(&_sta_static_dns1, dns1.c_str());
+  }
+  if (server->arg("dns2") != "") {
+    DEBUG_WM(F("DNS 2"));
+    DEBUG_WM(server->arg("dns2"));
+    String dns2 = server->arg("dns2");
+    optionalIPFromString(&_sta_static_dns2, dns2.c_str());
+  }
+
 
   String page = FPSTR(HTTP_HEADER);
   page.replace("{v}", "Credentials Saved");
@@ -776,8 +828,8 @@ void WiFiManager::setRemoveDuplicateAPs(boolean removeDuplicates) {
 template <typename Generic>
 void WiFiManager::DEBUG_WM(Generic text) {
   if (_debug) {
-    Serial.print("*WM: ");
-    Serial.println(text);
+    Serial1.print("*WM: ");
+    Serial1.println(text);
   }
 }
 
